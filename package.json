@@ -1,0 +1,7 @@
+{
+  "name": "drfranzmaier-site",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": { "start": "node preview.cjs", "test": "node validate.cjs" },
+  "engines": { "node": ">=18" }
+}

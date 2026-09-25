@@ -1,0 +1,6 @@
+(() => {
+ const reduce=matchMedia('(prefers-reduced-motion: reduce)');
+ const items=[...document.querySelectorAll('.consultation-steps li,.discussion>div,.discussion li,.appointment-faq>h2,.procedure-card,.contact>h2,.contact>h1')];
+ if('IntersectionObserver' in window&&!reduce.matches){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}}),{threshold:.08});items.forEach((item,i)=>{item.classList.add('motion-item');item.style.setProperty('--reveal-delay',(i%3)*70+'ms');observer.observe(item)});reduce.addEventListener('change',()=>{if(reduce.matches){items.forEach(i=>i.classList.add('is-visible'));observer.disconnect()}})}
+ const portrait=document.querySelector('.doctor-image');let pending=false;function update(){pending=false;if(!portrait||reduce.matches||innerWidth<900)return;const rect=portrait.getBoundingClientRect();if(rect.bottom<0||rect.top>innerHeight)return;const ratio=Math.max(0,Math.min(1,(innerHeight-rect.top)/(innerHeight+rect.height)));portrait.style.setProperty('--portrait-scale',1.04-ratio*.04)}if(portrait){addEventListener('scroll',()=>{if(!pending){pending=true;requestAnimationFrame(update)}},{passive:true});update()}
+})();

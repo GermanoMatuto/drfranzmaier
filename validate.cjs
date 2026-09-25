@@ -1,0 +1,3 @@
+const fs=require('fs'),path=require('path');const root=path.join(__dirname,'dist');const files=fs.readdirSync(root,{recursive:true}).filter(p=>p.endsWith('.html'));let failures=[];
+for(const f of files){const html=fs.readFileSync(path.join(root,f),'utf8');for(const m of html.matchAll(/(?:src|href)="([^"]+)"/g)){const u=m[1];if(/^(https?:|tel:|data:|#)/.test(u))continue;const clean=u.split('#')[0].split('?')[0];const p=clean.startsWith('/')?path.join(root,clean):path.resolve(root,path.dirname(f),clean);if(!fs.existsSync(p))failures.push(f+': '+u)}if(!html.includes('lang="pt-BR"'))failures.push(f+': language');}
+if(failures.length){console.error(failures);process.exit(1)}console.log('PASS: '+files.length+' pages, local images, scripts and internal links.');
