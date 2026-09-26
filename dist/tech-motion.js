@@ -29,7 +29,7 @@
   feature.querySelector('.tech-picker').after(progress);
   const hint = document.createElement('p'); hint.className = 'tech-scroll-hint';
   hint.textContent = 'Role para explorar as tecnologias ↓'; track.append(hint);
-  let active = 0, framePending = false;
+  let active = 0, framePending = false, distance = 1;
   function pinned() { return desktop.matches && !reduced.matches && !track.classList.contains('content-tall'); }
   function show(index) {
     if (active === index) return;
@@ -50,8 +50,8 @@
     panel.setAttribute('aria-labelledby', controls[index].id);
     if (!reduced.matches) {
       panel.getAnimations().forEach(animation => animation.cancel());
-      panel.animate([{opacity:0,transform:`translateY(${direction*22}px)`},{opacity:1,transform:'translateY(0)'}],
-        {duration:650,easing:'cubic-bezier(.22,1,.36,1)'});
+      panel.animate([{opacity:0,transform:`translateY(${direction*12}px)`},{opacity:1,transform:'translateY(0)'}],
+        {duration:450,easing:'cubic-bezier(.22,1,.36,1)'});
     }
     progress.style.setProperty('--progress', (index + 1) / 3);
   }
@@ -59,18 +59,19 @@
     framePending = false;
     if (!pinned()) return;
     const rect = track.getBoundingClientRect();
-    const distance = track.offsetHeight - feature.offsetHeight;
+
     const amount = Math.max(0,Math.min(1,(92 - rect.top) / distance));
     show(Math.min(2, Math.floor(amount * 3)));
     progress.style.setProperty('--progress', amount);
-    feature.style.setProperty('--photo-scale', 1.045 - (amount * 3 % 1) * .045);
+
   }
   function schedule() { if (!framePending) { framePending = true; requestAnimationFrame(update); } }
   function choose(index) {
+    show(index);
     if (pinned()) {
       const start = scrollY + track.getBoundingClientRect().top - 92;
       const distance = track.offsetHeight - feature.offsetHeight;
-      window.scrollTo({top:start + distance * ((index + .15) / 3),behavior:'smooth'});
+      window.scrollTo({top:start + distance * ((index + .15) / 3),behavior:'instant'});
     } else show(index);
   }
   controls.forEach((button,index) => {
@@ -92,6 +93,7 @@
       track.classList.add('content-tall'); track.classList.remove('is-pinned');
     }
     if (!pinned()) { feature.style.setProperty('--photo-scale',1); progress.style.setProperty('--progress',(active+1)/3); }
+    distance = Math.max(1, track.offsetHeight - feature.offsetHeight);
     schedule();
   }
   window.addEventListener('scroll',schedule,{passive:true});
