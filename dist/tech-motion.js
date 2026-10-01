@@ -32,10 +32,8 @@
       dot.style.setProperty('--progress', '0');
     });
     const data = techs[keys[active]];
-    carousel.querySelector('#treatment-title').textContent = data.title;
     carousel.querySelector('#treatment-description').textContent = data.description;
     carousel.querySelector('#treatment-source').href = '/procedimentos/' + data.link + '.html';
-    carousel.querySelector('.treatment-counter').textContent = `0${active+1} / 03`;
     if (announce) carousel.querySelector('.treatment-status').textContent = data.title;
   }
   function canPlay() { return visible && !paused && !hovered && !focused && !document.hidden; }

@@ -4,3 +4,5 @@
 @media(prefers-reduced-motion:reduce){.treatment-pagination button span{transition:none}}
 
 @media(max-width:600px){.treatment-card:not(.is-featured) .treatment-caption{display:none}.treatment-caption h3{overflow-wrap:normal}}
+
+.treatment-detail{display:block;min-height:0;max-width:850px;margin:0 auto;padding:24px 0 0}.treatment-detail>div{max-width:760px;margin:auto}.treatment-detail #treatment-description{margin-bottom:12px}@media(max-width:600px){.treatment-detail{padding-inline:3%;min-height:205px}}
