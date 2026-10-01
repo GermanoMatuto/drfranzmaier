@@ -1,102 +1,88 @@
 (() => {
-  const section = document.querySelector('#tecnologia');
-  if (!section) return;
-  const feature = section.querySelector('.tech-feature');
-  const track = document.createElement('div');
-  track.className = 'tech-story';
-  feature.before(track); track.append(feature);
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const desktop = matchMedia('(min-width: 900px) and (min-height: 680px)');
-  const imageBox = feature.querySelector('.tech-image');
-  const original = feature.querySelector('#tech-photo');
+  const carousel = document.querySelector('.treatment-showcase');
+  if (!carousel) return;
+  const cards = [...carousel.querySelectorAll('.treatment-card')];
+  const dots = [...carousel.querySelectorAll('[data-treatment-dot]')];
+  const pause = carousel.querySelector('.treatment-pause');
   const keys = ['ondas', 'magneto', 'ultrassom'];
-  const pictures = keys.map((key, i) => {
-    const img = i === 0 ? original : original.cloneNode();
-    img.removeAttribute('id'); img.src = '/assets/' + key + '.webp'; img.srcset = '/assets/' + key + '-600.webp 600w, /assets/' + key + '.webp 1000w'; img.sizes = '(max-width: 899px) 90vw, 48vw';
-    img.alt = techs[key].alt; img.loading = 'eager';
-    img.className = 'tech-frame' + (i === 0 ? ' active' : '');
-    img.setAttribute('aria-hidden', String(i !== 0));
-    if (i) imageBox.append(img);
-    return img;
-  });
-  const panel = feature.querySelector('#tech-panel');
-  const controls = [...feature.querySelectorAll('[data-tech]')].map(button => {
-    const fresh = button.cloneNode(true); button.replaceWith(fresh); return fresh;
-  });
-  const progress = document.createElement('div');
-  progress.className = 'tech-progress'; progress.setAttribute('aria-hidden','true');
-  progress.innerHTML = '<span></span>';
-  feature.querySelector('.tech-picker').after(progress);
-  const hint = document.createElement('p'); hint.className = 'tech-scroll-hint';
-  hint.textContent = 'Role para explorar as tecnologias ↓'; track.append(hint);
-  let active = 0, framePending = false, distance = 1;
-  function pinned() { return desktop.matches && !reduced.matches && !track.classList.contains('content-tall'); }
-  function show(index) {
-    if (active === index) return;
-    const direction = index > active ? 1 : -1;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  let suppressClickUntil = 0;
+  let active = 0, elapsed = 0, last = 0, frame = 0, visible = false;
+  let paused = reduced.matches, hovered = false, focused = false, lock = 0;
+  const duration = 6500;
+  function show(index, announce = false, animate = true) {
+    index = (index + cards.length) % cards.length;
+    const before = cards.map(card => card.getBoundingClientRect());
+    cards.forEach(card => card.getAnimations().forEach(animation => animation.cancel()));
     active = index;
-    const data = techs[keys[index]];
-    pictures.forEach((img, i) => {
-      img.classList.toggle('active', i === index);
-      img.setAttribute('aria-hidden', String(i !== index));
+    elapsed = 0;
+    lock = performance.now() + 650;
+    cards.forEach((card, i) => {
+      card.style.order = i === active ? 1 : i === (active + 2) % 3 ? 0 : 2;
+      card.classList.toggle('is-featured', i === active);
+      card.querySelector('button').setAttribute('aria-pressed', String(i === active));
     });
-    controls.forEach((button, i) => {
-      button.setAttribute('aria-selected', String(i === index)); button.tabIndex = i === index ? 0 : -1;
+    const after = cards.map(card => card.getBoundingClientRect());
+    if (animate && !reduced.matches) cards.forEach((card, i) => {
+      const a = before[i], b = after[i];
+      card.animate([{transform:`translate(${a.left-b.left}px,${a.top-b.top}px) scale(${a.width/b.width},${a.height/b.height})`},{transform:'none'}],{duration:550,easing:'cubic-bezier(.22,1,.36,1)'});
     });
-    panel.querySelector('#tech-title').textContent = data.title;
-    panel.querySelector('#tech-description').textContent = data.description;
-    panel.querySelector('#tech-counter').textContent = '0' + (index + 1) + ' / 03';
-    panel.querySelector('#tech-source').href = '/procedimentos/' + data.link + '.html';
-    panel.setAttribute('aria-labelledby', controls[index].id);
-    if (!reduced.matches) {
-      panel.getAnimations().forEach(animation => animation.cancel());
-      panel.animate([{opacity:0,transform:`translateY(${direction*12}px)`},{opacity:1,transform:'translateY(0)'}],
-        {duration:450,easing:'cubic-bezier(.22,1,.36,1)'});
-    }
-    progress.style.setProperty('--progress', (index + 1) / 3);
+    dots.forEach((dot, i) => {
+      dot.setAttribute('aria-current', String(i === active));
+      dot.style.setProperty('--progress', '0');
+    });
+    const data = techs[keys[active]];
+    carousel.querySelector('#treatment-title').textContent = data.title;
+    carousel.querySelector('#treatment-description').textContent = data.description;
+    carousel.querySelector('#treatment-source').href = '/procedimentos/' + data.link + '.html';
+    carousel.querySelector('.treatment-counter').textContent = `0${active+1} / 03`;
+    if (announce) carousel.querySelector('.treatment-status').textContent = data.title;
   }
-  function update() {
-    framePending = false;
-    if (!pinned()) return;
-    const rect = track.getBoundingClientRect();
-
-    const amount = Math.max(0,Math.min(1,(92 - rect.top) / distance));
-    show(Math.min(2, Math.floor(amount * 3)));
-    progress.style.setProperty('--progress', amount);
-
+  function canPlay() { return visible && !paused && !hovered && !focused && !document.hidden; }
+  function tick(time) {
+    frame = 0;
+    if (!canPlay()) { last = 0; return; }
+    elapsed += last ? Math.min(time-last,100) : 0;
+    last = time;
+    if (elapsed >= duration) show(active+1);
+    dots[active].style.setProperty('--progress', String(elapsed/duration));
+    frame = requestAnimationFrame(tick);
   }
-  function schedule() { if (!framePending) { framePending = true; requestAnimationFrame(update); } }
-  function choose(index) {
-    show(index);
-    if (pinned()) {
-      const start = scrollY + track.getBoundingClientRect().top - 92;
-      const distance = track.offsetHeight - feature.offsetHeight;
-      window.scrollTo({top:start + distance * ((index + .15) / 3),behavior:'instant'});
-    } else show(index);
+  function sync() {
+    if (!canPlay()) { cancelAnimationFrame(frame); frame = 0; last = 0; }
+    else if (!frame) frame = requestAnimationFrame(tick);
   }
-  controls.forEach((button,index) => {
-    button.addEventListener('click', () => choose(index));
-    button.addEventListener('keydown', event => {
-      let next;
-      if(event.key==='ArrowRight') next=(index+1)%3;
-      else if(event.key==='ArrowLeft') next=(index+2)%3;
-      else if(event.key==='Home') next=0;
-      else if(event.key==='End') next=2;
-      else return;
-      event.preventDefault(); controls[next].focus(); choose(next);
+  function pauseLabel() {
+    pause.setAttribute('aria-label', paused ? 'Iniciar apresentação automática' : 'Pausar apresentação automática');
+    pause.firstElementChild.textContent = paused ? '▶' : 'Ⅱ';
+  }
+  pause.addEventListener('click', () => { paused = !paused; pauseLabel(); sync(); });
+  dots.forEach((dot,i) => dot.addEventListener('click', () => show(i,true)));
+  cards.forEach((card,i) => {
+    card.querySelector('button').addEventListener('click', () => { if(performance.now()>suppressClickUntil)show(i,true); });
+    card.addEventListener('pointerenter',event => {
+      if(event.pointerType === 'mouse' && i !== active && performance.now() > lock && !focused) show(i,true);
     });
   });
-  function measure() {
-    track.classList.remove('content-tall');
-    track.classList.toggle('is-pinned',desktop.matches && !reduced.matches);
-    if (desktop.matches && feature.querySelector('.tech-content').scrollHeight > innerHeight - 150) {
-      track.classList.add('content-tall'); track.classList.remove('is-pinned');
-    }
-    if (!pinned()) { feature.style.setProperty('--photo-scale',1); progress.style.setProperty('--progress',(active+1)/3); }
-    distance = Math.max(1, track.offsetHeight - feature.offsetHeight);
-    schedule();
-  }
-  window.addEventListener('scroll',schedule,{passive:true});
-  window.addEventListener('resize',measure); reduced.addEventListener('change',measure);
-  measure();
+  carousel.addEventListener('keydown',event => {
+    if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : (active+(event.key==='ArrowRight'?1:2))%3;
+    show(next,true); dots[next].focus();
+  });
+  carousel.addEventListener('pointerenter',event => { if(event.pointerType==='mouse'){hovered=true;sync();} });
+  carousel.addEventListener('pointerleave',()=>{hovered=false;sync();});
+  carousel.addEventListener('focusin',()=>{focused=true;sync();});
+  carousel.addEventListener('focusout',event=>{focused=carousel.contains(event.relatedTarget);sync();});
+  let start = null;
+  const viewport = carousel.querySelector('.treatment-viewport');
+  viewport.addEventListener('pointerdown',event=>{if(event.pointerType==='touch')start={x:event.clientX,y:event.clientY};});
+  viewport.addEventListener('pointerup',event=>{
+    if(start){const dx=event.clientX-start.x,dy=event.clientY-start.y;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)){suppressClickUntil=performance.now()+400;show(active+(dx<0?1:2),true);}start=null;}
+  });
+  viewport.addEventListener('pointercancel',()=>start=null);
+  document.addEventListener('visibilitychange',sync);
+  new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;sync();},{threshold:.25}).observe(carousel);
+  reduced.addEventListener('change',()=>{if(reduced.matches){paused=true;cards.forEach(card=>card.getAnimations().forEach(a=>a.cancel()));}pauseLabel();sync();});
+  show(0,false,false); pauseLabel();
 })();
